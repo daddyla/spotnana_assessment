@@ -162,6 +162,14 @@ describe('App', () => {
     expect(await screen.findByText(/having trouble/i)).toBeInTheDocument();
   });
 
+  it('explains a 404 from the wrong server instead of echoing "Not Found"', async () => {
+    mockFetch(() => jsonResponse({ detail: 'Not Found' }, 404));
+    render(<App />);
+    await fillAndSubmit(user, 'JFK', 'LAX');
+    expect(await screen.findByText(/service could not be found/i)).toBeInTheDocument();
+    expect(screen.queryByText('Not Found')).not.toBeInTheDocument();
+  });
+
   it('explains date-line arrivals (test case 6)', async () => {
     const dep = '2024-03-15T09:00:00+11:00';
     const arr = '2024-03-15T06:00:00-07:00';

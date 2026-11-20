@@ -28,6 +28,14 @@ async function request(path, { signal } = {}) {
 
   if (!response.ok) {
     const detail = typeof body?.detail === 'string' ? body.detail : null;
+    // Our API never returns 404 for a valid route, so a 404 means the request reached
+    // the wrong server (e.g. a misconfigured proxy). Don't echo its "Not Found".
+    if (response.status === 404) {
+      throw new ApiError(
+        'The flight search service could not be found. Check that the backend is running and the API address is configured correctly.',
+        { status: 404 },
+      );
+    }
     const fallback =
       response.status >= 500
         ? 'The flight search service is having trouble. Please try again shortly.'
