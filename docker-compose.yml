@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      DATA_PATH: /data/flights.json
+    volumes:
+      # Dataset is mounted read-only, not baked into the image: swap the file
+      # and restart to search a different schedule.
+      - ./data:/data:ro
+    ports:
+      # Host ports are overridable if 8000/3000 are taken: BACKEND_PORT=8001 docker-compose up
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
