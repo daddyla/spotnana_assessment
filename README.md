@@ -30,7 +30,7 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/pytest                              # 75 tests
 .venv/bin/python -m scripts.audit_dataset     # print the data-quality report
 
-# frontend: Node 20+
+# frontend: Node 20.19+ or 22.12+ (Vite 7)
 cd frontend
 npm install
 npm run dev                                   # http://localhost:5173 (proxies /api to :8000)
