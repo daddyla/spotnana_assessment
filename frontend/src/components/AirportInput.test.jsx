@@ -2,7 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
-import AirportInput, { matchAirports } from './AirportInput.jsx';
+import AirportInput from './AirportInput.jsx';
+import { matchAirports } from '../utils/airports.js';
 
 const CODES = ['JFK', 'LGA', 'EWR', 'LAX', 'PHX', 'LHR', 'HND', 'HKG', 'NRT', 'SYD'];
 const AIRPORTS = CODES.map((code) => ({ code, name: `${code} Intl`, city: `${code} City`, country: 'XX', timezone: 'UTC' }));
@@ -21,12 +22,12 @@ describe('matchAirports', () => {
 
   it('ranks codes that start with the query first', () => {
     expect(codesOf(matchAirports(AIRPORTS, 'H'))).toEqual(['HKG', 'HND', 'LHR', 'PHX']);
-    expect(codesOf(matchAirports(AIRPORTS, 'R'))).toEqual(['NRT', 'EWR', 'LHR']); // earlier match first, then A–Z
+    expect(codesOf(matchAirports(AIRPORTS, 'R'))).toEqual(['EWR', 'LHR', 'NRT']); // none start with R, so A–Z
   });
 
-  it('ignores case and only looks at the code, not city or name', () => {
+  it('ignores case and does not match the airport name', () => {
     expect(codesOf(matchAirports(AIRPORTS, 'jf'))).toEqual(['JFK']);
-    expect(matchAirports(AIRPORTS, 'CIT')).toEqual([]); // "City" is in every name
+    expect(matchAirports(AIRPORTS, 'NTL')).toEqual([]); // letters from "Intl" in every name
   });
 
   it('returns everything for an empty query', () => {
@@ -59,7 +60,7 @@ describe('AirportInput', () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.type(screen.getByRole('combobox'), 'FJ');
-    expect(screen.getByText(/No airport code contains/)).toBeInTheDocument();
+    expect(screen.getByText(/No airport code or city matches/)).toBeInTheDocument();
   });
 
   it('selects with the keyboard and closes the list', async () => {

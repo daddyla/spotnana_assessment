@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AirportInput from './AirportInput.jsx';
+import { resolveAirport } from '../utils/airports.js';
 import { validateSearch } from '../utils/validation.js';
 
 export const DATASET_DATE = '2024-03-15';
@@ -9,10 +10,27 @@ export default function SearchForm({ onSearch, loading, airports, byCode, knownC
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
+  // Inputs hold what the user typed (a code or a city name). Resolve to codes first,
+  // then run the normal code validation; a resolve error (e.g. "New York has 3
+  // airports") wins over the generic one for that field.
+  const check = (v) => {
+    const origin = resolveAirport(v.origin, airports);
+    const destination = resolveAirport(v.destination, airports);
+    const query = { origin: origin.code ?? '', destination: destination.code ?? '', date: v.date };
+    const errs = validateSearch(query, knownCodes);
+    if (origin.error) errs.origin = origin.error;
+    if (destination.error) errs.destination = destination.error;
+    if (origin.error || destination.error) {
+      // "Origin and destination must differ" is meaningless if one side didn't resolve.
+      if (errs.destination === 'Origin and destination must differ') delete errs.destination;
+    }
+    return { errs, query };
+  };
+
   const apply = (next) => {
     setValues(next);
     // After the first submit, re-validate live so errors clear as the user fixes them.
-    if (submitted) setErrors(validateSearch(next, knownCodes));
+    if (submitted) setErrors(check(next).errs);
   };
   const update = (field) => (value) => apply({ ...values, [field]: value });
   const swap = () => apply({ ...values, origin: values.destination, destination: values.origin });
@@ -20,9 +38,9 @@ export default function SearchForm({ onSearch, loading, airports, byCode, knownC
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitted(true);
-    const found = validateSearch(values, knownCodes);
-    setErrors(found);
-    if (Object.keys(found).length === 0) onSearch(values);
+    const { errs, query } = check(values);
+    setErrors(errs);
+    if (Object.keys(errs).length === 0) onSearch(query);
   };
 
   // A 400/422 from the API that names a field is shown next to that field.

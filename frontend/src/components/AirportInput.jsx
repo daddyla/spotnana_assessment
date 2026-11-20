@@ -1,30 +1,24 @@
 import { useId, useMemo, useState } from 'react';
+import { matchAirports, matchRank } from '../utils/airports.js';
 
 /**
- * Airport code input with a custom suggestion list (ARIA combobox pattern).
- *
- * Matching is on the IATA code only, as a contiguous, ordered substring:
- *   "H"  -> HKG, HND, LHR, PHX
- *   "JF" -> JFK          ("FJ" matches nothing: order matters)
- * The native <datalist> was dropped because each browser matches differently
- * (Chrome also matches city/name text), so "H" showed unrelated airports.
+ * Airport input with a custom suggestion list (ARIA combobox pattern).
+ * Accepts an IATA code or a city name; see utils/airports.js for the matching rules.
+ * The native <datalist> was dropped because each browser matches differently.
  */
-export function matchAirports(airports, query) {
-  const q = query.trim().toUpperCase();
-  if (!q) return airports;
-  return airports
-    .filter((a) => a.code.includes(q))
-    .sort((a, b) => a.code.indexOf(q) - b.code.indexOf(q) || a.code.localeCompare(b.code));
-}
 
-function Highlight({ code, query }) {
-  const i = query ? code.indexOf(query) : -1;
-  if (i < 0) return code;
+function Highlight({ text, query, upper }) {
+  const q = upper ? query.toUpperCase() : query.toLowerCase();
+  const hay = upper ? text : text.toLowerCase();
+  // For cities, highlight the word-prefix that matched ("york" in "New York").
+  let i = hay.indexOf(q);
+  if (!upper && i > 0 && /[a-z]/.test(hay[i - 1])) i = hay.indexOf(` ${q}`) + 1 || -1;
+  if (!q || i < 0) return text;
   return (
     <>
-      {code.slice(0, i)}
-      <mark>{code.slice(i, i + query.length)}</mark>
-      {code.slice(i + query.length)}
+      {text.slice(0, i)}
+      <mark>{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
     </>
   );
 }
@@ -35,10 +29,11 @@ export default function AirportInput({ id, label, value, onChange, error, airpor
   const listId = `${id}-listbox`;
   const errorId = `${id}-error`;
   const optionId = useId();
-  const match = byCode.get(value);
+  const query = value.trim();
+  const match = byCode.get(query.toUpperCase());
 
   const suggestions = useMemo(() => matchAirports(airports, value), [airports, value]);
-  // Hide the list once the user has typed an exact code; there is nothing left to choose.
+  // Hide the list once an exact code is typed; there is nothing left to choose.
   const showList = open && airports.length > 0 && !(match && suggestions.length === 1);
 
   const select = (airport) => {
@@ -76,48 +71,53 @@ export default function AirportInput({ id, label, value, onChange, error, airpor
           aria-activedescendant={showList && suggestions[active] ? `${optionId}-${active}` : undefined}
           value={value}
           onChange={(e) => {
-            onChange(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3));
+            // Letters, spaces, dots and hyphens only (enough for "St. Louis", "Rio de Janeiro").
+            onChange(e.target.value.replace(/[^A-Za-z\s.-]/g, '').slice(0, 40));
             setActive(0);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => setOpen(false)}
           onKeyDown={handleKeyDown}
-          placeholder="e.g. JFK"
+          placeholder="Code or city, e.g. JFK"
           autoComplete="off"
           spellCheck="false"
-          maxLength={3}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
         />
         {showList && (
           <ul className="combo__list" id={listId} role="listbox" aria-label={`${label} airports`}>
             {suggestions.length === 0 ? (
-              <li className="combo__empty">No airport code contains “{value}”</li>
+              <li className="combo__empty">No airport code or city matches “{query}”</li>
             ) : (
-              suggestions.map((a, i) => (
-                <li
-                  key={a.code}
-                  id={`${optionId}-${i}`}
-                  role="option"
-                  aria-selected={i === active}
-                  className={`combo__option ${i === active ? 'is-active' : ''}`}
-                  // mousedown (not click) so it fires before the input's blur closes the list
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    select(a);
-                  }}
-                  onMouseEnter={() => setActive(i)}
-                >
-                  <span className="combo__code">
-                    <Highlight code={a.code} query={value} />
-                  </span>
-                  <span className="combo__place">
-                    {a.city}, {a.country}
-                    <small>{a.name}</small>
-                  </span>
-                </li>
-              ))
+              suggestions.map((a, i) => {
+                const rank = query ? matchRank(a, query) : null;
+                return (
+                  <li
+                    key={a.code}
+                    id={`${optionId}-${i}`}
+                    role="option"
+                    aria-selected={i === active}
+                    className={`combo__option ${i === active ? 'is-active' : ''}`}
+                    // mousedown (not click) so it fires before the input's blur closes the list
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      select(a);
+                    }}
+                    onMouseEnter={() => setActive(i)}
+                  >
+                    <span className="combo__code">
+                      {rank !== null && rank <= 1 ? <Highlight text={a.code} query={query} upper /> : a.code}
+                    </span>
+                    <span className="combo__place">
+                      <span>
+                        {rank >= 2 ? <Highlight text={a.city} query={query} /> : a.city}, {a.country}
+                      </span>
+                      <small>{a.name}</small>
+                    </span>
+                  </li>
+                );
+              })
             )}
           </ul>
         )}
