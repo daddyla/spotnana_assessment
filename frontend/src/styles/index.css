@@ -1,0 +1,182 @@
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-muted: #f0f3f9;
+  --text: #172033;
+  --text-muted: #5b6577;
+  --border: #dde3ee;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-text: #ffffff;
+  --danger: #c62828;
+  --danger-bg: #fdecec;
+  --warning-bg: #fff6e0;
+  --warning-text: #8a5a00;
+  --success: #1b7f4b;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.06);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1420;
+    --surface: #182030;
+    --surface-muted: #1f2a3d;
+    --text: #e6eaf2;
+    --text-muted: #9aa5b8;
+    --border: #2b3850;
+    --primary: #5b8cff;
+    --primary-hover: #7aa2ff;
+    --primary-text: #0b1020;
+    --danger: #ff8a80;
+    --danger-bg: #3a1d1f;
+    --warning-bg: #3a2f14;
+    --warning-text: #f5c96a;
+    --success: #5fd39a;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.45;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.app__header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.app__header p {
+  margin: 4px 0 20px;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ form */
+
+.search-form {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr 1fr auto;
+  gap: 12px;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field input {
+  font: inherit;
+  font-size: 1rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.field--error input {
+  border-color: var(--danger);
+}
+
+.field__error,
+.field__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  min-height: 1.2em;
+}
+
+.field__error {
+  color: var(--danger);
+}
+
+.field__hint {
+  color: var(--text-muted);
+}
+
+.swap {
+  margin-top: 26px;
+  height: 42px;
+  width: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.search-button {
+  margin-top: 26px;
+  height: 42px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.search-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.search-button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+@media (max-width: 760px) {
+  .search-form {
+    grid-template-columns: 1fr;
+  }
+  .swap {
+    margin: 0;
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+  .search-button {
+    margin-top: 0;
+    width: 100%;
+  }
+}
