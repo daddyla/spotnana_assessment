@@ -181,6 +181,76 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------ airport combobox */
+
+.combo {
+  position: relative;
+}
+
+.combo__list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
+}
+
+.combo__option {
+  display: grid;
+  grid-template-columns: 3.2em 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.combo__option.is-active {
+  background: var(--surface-muted);
+}
+
+.combo__code {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.combo__code mark {
+  background: none;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.combo__place {
+  display: grid;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.combo__place small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combo__empty {
+  padding: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 /* ------------------------------------------------------------------ states */
 
 .state {
