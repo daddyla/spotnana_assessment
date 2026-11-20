@@ -180,3 +180,314 @@ body {
     width: 100%;
   }
 }
+
+/* ------------------------------------------------------------------ states */
+
+.state {
+  margin-top: 24px;
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.state h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.state p {
+  margin: 4px 0;
+}
+
+.state--idle {
+  color: var(--text-muted);
+  border-style: dashed;
+  background: transparent;
+}
+
+.state--error {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--text);
+}
+
+.state__icon {
+  font-size: 2rem;
+  opacity: 0.6;
+}
+
+.state__hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.retry {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--danger);
+  background: var(--surface);
+  color: var(--danger);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.loading {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.skeleton {
+  height: 84px;
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-muted) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border: 1px solid var(--border);
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ results */
+
+.results {
+  margin-top: 28px;
+}
+
+.results__header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.results__header p {
+  margin: 4px 0 12px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.results__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card__summary {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card__summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.summary__times,
+.summary__duration,
+.summary__price {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.summary__clock,
+.summary__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary__shift {
+  margin-left: 4px;
+  font-size: 0.7rem;
+  color: var(--warning-text);
+}
+
+.summary__route,
+.summary__stops,
+.summary__flights {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary__stops.is-direct {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.summary__price {
+  text-align: right;
+}
+
+.card__chevron {
+  color: var(--text-muted);
+}
+
+.card__details {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.note {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.85rem;
+}
+
+.segment {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border-radius: 10px;
+}
+
+.stop--end {
+  text-align: right;
+}
+
+.stop__time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stop__airport {
+  font-size: 0.9rem;
+}
+
+.stop__meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.segment__middle {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.segment__flight {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.segment__line {
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
+.segment__shift {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--warning-text);
+}
+
+.layover {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+}
+
+.tag--international {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-color: transparent;
+}
+
+@media (max-width: 760px) {
+  .card__summary {
+    grid-template-columns: 1fr auto;
+  }
+  .summary__times {
+    grid-column: 1 / -1;
+  }
+  .card__chevron {
+    display: none;
+  }
+  .segment {
+    grid-template-columns: 1fr 1fr;
+  }
+  .segment__middle {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
