@@ -4,7 +4,9 @@ Policy:
 - The raw JSON file is never modified; cleaning happens here, at load time.
 - A record that can be safely normalised (e.g. price "95.00" -> Decimal) is
   *coerced* and kept.
-- A record that would require guessing (e.g. origin "JKF") is *dropped*.
+- An unknown airport code that is exactly one swapped pair of letters away from
+  exactly one known code (e.g. origin "JKF" -> "JFK") is *corrected* as a typo and
+  reported. Anything less certain (no match, several matches) is *dropped*.
 - Every coercion / drop is recorded in a LoadReport so it is visible, not silent.
 """
 
@@ -151,6 +153,18 @@ def _normalize_code(value: Any, field_name: str) -> tuple[str, bool]:
     return code, code != value
 
 
+def _correct_typo(code: str, airports: dict[str, Airport]) -> str | None:
+    """Known code reachable by swapping two adjacent letters, if exactly one exists.
+
+    Only adjacent transpositions ("JKF" -> "JFK") are tried: it is the most common
+    keying slip and, with 3-letter codes, rarely ambiguous. If two known codes fit,
+    we refuse to guess and the record is dropped.
+    """
+    swaps = {code[:i] + code[i + 1] + code[i] + code[i + 2 :] for i in range(len(code) - 1)}
+    matches = sorted(c for c in swaps if c in airports and c != code)
+    return matches[0] if len(matches) == 1 else None
+
+
 def _require(record: dict[str, Any], fields: tuple[str, ...]) -> None:
     missing = [f for f in fields if record.get(f) in (None, "")]
     if missing:
@@ -181,15 +195,28 @@ def _parse_airport(raw: dict[str, Any], report: LoadReport) -> Airport:
     )
 
 
+def _resolve_code(
+    code: str, label: str, number: str, airports: dict[str, Airport], report: LoadReport
+) -> str:
+    if code in airports:
+        return code
+    fixed = _correct_typo(code, airports)
+    if fixed is None:
+        raise RecordError(f"{label} {code!r} is not a known airport")
+    report.issues.append(
+        Issue("coerced", "flight", number, f"typo: {label} {code!r} corrected to {fixed!r}")
+    )
+    return fixed
+
+
 def _parse_flight(raw: dict[str, Any], airports: dict[str, Airport], report: LoadReport) -> Flight:
     _require(raw, REQUIRED_FLIGHT_FIELDS)
     number = str(raw["flightNumber"]).strip()
 
     origin, _ = _normalize_code(raw["origin"], "origin")
     destination, _ = _normalize_code(raw["destination"], "destination")
-    for label, code in (("origin", origin), ("destination", destination)):
-        if code not in airports:
-            raise RecordError(f"{label} {code!r} is not a known airport")
+    origin = _resolve_code(origin, "origin", number, airports, report)
+    destination = _resolve_code(destination, "destination", number, airports, report)
     if origin == destination:
         raise RecordError(f"origin and destination are both {origin}")
 

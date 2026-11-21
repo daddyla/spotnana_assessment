@@ -23,7 +23,7 @@ def _search(client, origin, destination, date="2024-03-15"):
 
 def test_health(client):
     body = client.get("/health").json()
-    assert body == {"status": "ok", "airports": 25, "flights": 302}
+    assert body == {"status": "ok", "airports": 25, "flights": 303}
 
 
 def test_airports_listed_sorted(client):
@@ -33,8 +33,9 @@ def test_airports_listed_sorted(client):
 
 def test_data_quality_report(client):
     body = client.get("/api/data-quality").json()
-    assert [d["id"] for d in body["dropped"]] == ["SP995"]
-    assert sorted(c["id"] for c in body["coerced"]) == ["SP996", "SP998"]
+    assert body["dropped"] == []
+    assert sorted(c["id"] for c in body["coerced"]) == ["SP995", "SP995", "SP996", "SP998"]
+    assert any(c["reason"].startswith("typo:") for c in body["coerced"])
 
 
 # ------------------------------------------------------------------ spec test cases

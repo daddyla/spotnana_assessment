@@ -78,15 +78,48 @@ def test_invalid_price_is_dropped(bad_price):
     assert _dropped_ids(ds) == {"T1"}
 
 
-def test_unknown_airport_is_dropped_not_guessed():
+def test_swapped_letter_typo_is_corrected_and_reported():
     ds = _parse([flight("T1", "JKF", "LAX", "2024-03-15T08:00:00", "2024-03-15T11:00:00")])
+    assert [f.origin for f in ds.flights] == ["JFK"]
+    assert ds.report.dropped == []
+    assert [i.reason for i in ds.report.coerced] == ["typo: origin 'JKF' corrected to 'JFK'"]
+
+
+def test_typo_in_destination_is_corrected():
+    ds = _parse([flight("T1", "JFK", "LXA", "2024-03-15T08:00:00", "2024-03-15T11:00:00")])
+    assert [f.destination for f in ds.flights] == ["LAX"]
+
+
+def test_typo_and_string_price_are_both_reported():
+    ds = _parse([flight("T1", "JKF", "LAX", "2024-03-15T08:00:00", "2024-03-15T11:00:00", "289")])
+    reasons = [i.reason for i in ds.report.coerced]
+    assert reasons == ["typo: origin 'JKF' corrected to 'JFK'", "price string '289' -> 289.00"]
+
+
+def test_unknown_airport_without_a_unique_typo_match_is_dropped():
+    # XXX is not one swap away from anything; never guessed.
+    ds = _parse([flight("T1", "XXX", "LAX", "2024-03-15T08:00:00", "2024-03-15T11:00:00")])
+    assert ds.flights == []
+    assert "not a known airport" in ds.report.dropped[0].reason
+
+
+def test_ambiguous_typo_is_dropped_not_guessed():
+    # "BAB" is one swap from both ABB and BBA: two candidates, so refuse to guess.
+    airports = [
+        *AIRPORTS,
+        airport("ABB", "US", "America/Chicago"),
+        airport("BBA", "US", "America/Chicago"),
+    ]
+    ds = _parse(
+        [flight("T1", "BAB", "LAX", "2024-03-15T08:00:00", "2024-03-15T11:00:00")], airports
+    )
     assert ds.flights == []
     assert "not a known airport" in ds.report.dropped[0].reason
 
 
 def test_dropped_flight_does_not_leave_coercion_entries():
     # Bad origin AND string price: only the drop should be reported.
-    ds = _parse([flight("T1", "JKF", "LAX", "2024-03-15T08:00:00", "2024-03-15T11:00:00", "289")])
+    ds = _parse([flight("T1", "XXX", "LAX", "2024-03-15T08:00:00", "2024-03-15T11:00:00", "289")])
     assert ds.report.coerced == []
     assert len(ds.report.dropped) == 1
 
@@ -153,9 +186,11 @@ def test_real_dataset_cleaning_report(real_data_path):
     ds = load_dataset(real_data_path)
     report = ds.report
     assert (report.airports_total, report.airports_loaded) == (25, 25)
-    assert (report.flights_total, report.flights_loaded) == (303, 302)
-    assert {(i.id, i.action) for i in report.issues} == {
-        ("SP995", "dropped"),  # origin "JKF"
-        ("SP996", "coerced"),  # price "99"
-        ("SP998", "coerced"),  # price "95.00"
-    }
+    assert (report.flights_total, report.flights_loaded) == (303, 303)
+    assert report.dropped == []
+    assert sorted((i.id, i.reason) for i in report.coerced) == [
+        ("SP995", "price string '289.00' -> 289.00"),
+        ("SP995", "typo: origin 'JKF' corrected to 'JFK'"),
+        ("SP996", "price string '99' -> 99.00"),
+        ("SP998", "price string '95.00' -> 95.00"),
+    ]

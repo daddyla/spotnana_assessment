@@ -48,7 +48,7 @@ npm test                                      # 20 tests
   "origin": { "code": "JFK", "city": "New York", ... },
   "destination": { "code": "LAX", ... },
   "date": "2024-03-15",
-  "count": 27,
+  "count": 28,
   "itineraries": [
     {
       "id": "SP101",
@@ -97,7 +97,7 @@ A query takes about 0.1 ms on this dataset. A test checks that the search return
 |---|---|
 | **Monorepo, `backend/` and `frontend/` fully independent** | Each has its own dependencies, Dockerfile and tests. A single git history shows how the whole thing was built. |
 | **`domain/` (pure Python) separate from `api/` (FastAPI)** | Search and rules are plain functions over dataclasses, so they're unit-testable without HTTP. The API layer only validates input, maps errors and serialises output. |
-| **Clean at load time, keep the raw file untouched** | The provided file has dirty rows: an unknown airport `JKF` and prices stored as strings. Records that can be safely fixed are fixed; records that would need guessing are dropped. Every action is reported (`/api/data-quality`, startup logs). This keeps working if a different file is used. |
+| **Clean at load time, keep the raw file untouched** | The provided file has dirty rows: an origin typed as `JKF` and prices stored as strings. Records that can be safely fixed are fixed (string prices are parsed; a code one swapped-letter away from exactly one known airport is corrected and flagged as a typo); records that would need guessing are dropped. Every action is reported (`/api/data-quality`, startup logs). This keeps working if a different file is used. |
 | **UTC for arithmetic, local time with offset for display** | This handles the date line (SYD→LAX "arrives before it departs") and DST. On 2024-03-15, PHX→LAX really is 30 min, because Phoenix has no DST and LA switched on March 10. The API returns `2024-03-15T09:00:00+11:00`, and the UI shows the wall-clock part without converting to the browser's timezone. |
 | **In-memory store loaded in the FastAPI lifespan** | About 300 static records. A database would add infrastructure with no benefit. Loading at startup means a bad file fails immediately. |
 | **Bounded DFS** | The spec asks for *all* itineraries up to 2 stops, not one shortest path. Layover rules depend on pairs of flights (times and countries), which fits a flight-to-flight walk naturally. |
@@ -112,7 +112,7 @@ A query takes about 0.1 ms on this dataset. A test checks that the search return
   - **SQL self-joins:** declarative, but needs a database.
   - **Brute force:** simplest, but O(F³), so it's used only as the test oracle.
   - **Bounded DFS:** gives every result, with the least code, rules checked as it goes, and well under a millisecond here.
-- **Dropping vs. fixing `JKF`.** It's almost certainly JFK, but silently changing booking data is worse than leaving one flight out and reporting it.
+- **Fixing `JKF` → `JFK` as a typo.** The rule is narrow: only an unknown code that becomes a known one by swapping two adjacent letters, and only when exactly one airport fits. The fix is never silent; it is reported as `typo:` in `/api/data-quality` and the startup log. An unknown code with no match, or with two possible matches, is still dropped.
 - **Price as a JSON number.** Sums are exact `Decimal` internally and converted to a number at the API edge for easy display. A real booking API would send integer cents or a string, and a currency (none is in the dataset; USD is assumed).
 - **`date` = local departure date at the origin.** This matches how people book. Later segments may depart the next day.
 - **No pagination or filters.** At most a few dozen results per query, so the UI shows them all.

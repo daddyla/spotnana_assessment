@@ -137,9 +137,14 @@ def test_unknown_airport_and_same_airport_raise():
 def test_case_1_jfk_lax_has_direct_and_multi_stop(real_store):
     result = search_itineraries(real_store, "JFK", "LAX", D)
     stops = Counter(it.stops for it in result)
-    assert stops[0] == 3 and stops[1] > 0 and stops[2] > 0
+    assert stops[0] == 4 and stops[1] > 0 and stops[2] > 0  # SP101-103 + typo-fixed SP995
     # Directs are the fastest and come first.
-    assert {it.segments[0].flight_number for it in result[:3]} == {"SP101", "SP102", "SP103"}
+    assert {it.segments[0].flight_number for it in result[:4]} == {
+        "SP101",
+        "SP102",
+        "SP103",
+        "SP995",
+    }
 
 
 def test_case_2_sfo_nrt_international_layovers_at_least_90(real_store):
@@ -185,9 +190,10 @@ def test_phx_lax_is_thirty_minutes(real_store):
     assert result[0].total_duration == timedelta(minutes=30)
 
 
-def test_dropped_flight_never_appears(real_store):
-    for it in search_itineraries(real_store, "JFK", "LAX", D):
-        assert all(f.flight_number != "SP995" for f in it.segments)
+def test_typo_corrected_flight_is_searchable_from_jfk(real_store):
+    # SP995 is listed with origin "JKF" in the raw file; the loader corrects it to JFK.
+    direct = [it for it in search_itineraries(real_store, "JFK", "LAX", D) if it.stops == 0]
+    assert "SP995" in {it.segments[0].flight_number for it in direct}
 
 
 # ------------------------------------------------------------------ oracle cross-check
