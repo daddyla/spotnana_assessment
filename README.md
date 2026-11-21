@@ -27,14 +27,14 @@ The dataset is mounted read-only from `./data`. To search a different schedule, 
 cd backend
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn app.main:app --reload       # http://localhost:8000
-.venv/bin/pytest                              # 75 tests
+.venv/bin/pytest                              # 79 tests
 .venv/bin/python -m scripts.audit_dataset     # print the data-quality report
 
 # frontend: Node 20.19+ or 22.12+ (Vite 7)
 cd frontend
 npm install
 npm run dev                                   # http://localhost:5173 (proxies /api to :8000)
-npm test                                      # 20 tests
+npm test                                      # 31 tests
 ```
 
 ---
@@ -89,6 +89,13 @@ Other endpoints: `GET /api/airports`, `GET /api/data-quality`, `GET /health`.
 
 A query takes about 0.1 ms on this dataset. A test checks that the search returns exactly the same itineraries as a deliberately naive brute-force version for all 600 airport pairs.
 
+## Frontend
+
+- **Airport input** accepts an IATA code or a city name, with a keyboard-navigable suggestion list (ARIA combobox). Codes match as an in-order substring (`JF` → JFK, `H` → PHX; `JK` matches nothing). Cities match by word prefix (`york` → New York). A city with one airport resolves to its code; a city with several (New York, Tokyo) asks you to pick one.
+- **Validation** runs before any request: required fields, known codes, origin ≠ destination. Errors from the API (`{detail, field}`) appear under the matching input.
+- **States:** loading (button disabled), empty ("No flights found"), a retryable error banner when the service can't be reached, and results with expandable cards showing segments, layovers (domestic/international), total duration and price.
+- **Times** are shown in each airport's local time. A card explains when an arrival looks earlier than its departure because of the date line.
+
 ---
 
 ## Architecture decisions
@@ -117,16 +124,24 @@ A query takes about 0.1 ms on this dataset. A test checks that the search return
 - **`date` = local departure date at the origin.** This matches how people book. Later segments may depart the next day.
 - **No pagination or filters.** At most a few dozen results per query, so the UI shows them all.
 - **Inclusive layover bounds.** Exactly 45 min, 90 min or 6 h is valid.
+- **Airport change vs. different airports in one city.** The rule forbids changing airports *during a layover*. A search such as JFK→LGA is still allowed and returns real routes (e.g. JFK→ORD→LGA), because every connection stays at one airport.
+
+## Known limitations
+
+- **Single-day schedule.** The dataset is one day of concrete flights, not a recurring timetable. Long-haul trips that need an onward flight the next day can return nothing. For example, every US→SIN route reaches its Asian hub on 03-16/17, after all the SIN departures on 03-15.
+- **First-leg date filter is a scan.** The origin's departures are checked one by one for the requested local date. That's fine for one day; with multi-day data it should bisect the UTC range of the origin's local day, the same way connections are found.
+- **The search lists every itinerary.** The cost grows roughly with k² at busy hubs, where k is the number of departures in the 6 h window. Real-network scale would need top-N with pruning or CSA/RAPTOR (see below).
 
 ## What I'd improve with more time
 
 - Filters and sorting in the UI (stops, price, departure window, airline) plus pagination for larger datasets.
 - Precompute the valid flight-to-flight connection graph at startup and cache results per `(origin, destination, date)`. If the network grew to real-world size, move to CSA/RAPTOR and a real datastore.
-- Multi-day schedules: index by date and allow searching a range ("±1 day").
-- Treat metro areas such as NYC = JFK/LGA/EWR as a search *input* (search "NYC"), while still forbidding airport changes mid-trip.
+- Multi-day and recurring schedules (operating days): index the first leg by the origin's local day and allow searching a range ("±1 day").
+- Let a city name search all of its airports at once (New York = JFK/LGA/EWR) instead of asking the user to pick one, while still forbidding airport changes mid-trip.
 - Browser E2E tests (Playwright) running against docker-compose, plus CI (lint, tests, image build).
 - Structured logging, request metrics, rate limiting. Return price as integer cents with a currency.
-- Accessibility audit and keyboard-navigable airport autocomplete. The native `<datalist>` varies by browser.
+- A full accessibility audit (screen-reader pass on the combobox and results).
+- Server-side airport autocomplete (`/api/airports?q=`) once there are thousands of airports.
 
 ## Project layout
 
@@ -143,5 +158,5 @@ frontend/src/
   api/client.js              fetch wrapper → ApiError
   hooks/                     useAirports, useFlightSearch
   components/                SearchForm, ResultsList, ItineraryCard, ...
-  utils/                     validation, timezone-safe formatting
+  utils/                     airport matching, validation, timezone-safe formatting
 ```
