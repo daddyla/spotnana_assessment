@@ -7,7 +7,7 @@ Search direct, 1-stop and 2-stop itineraries between two airports over a fixed f
 ## Running it
 
 ```sh
-docker-compose up --build
+docker compose up --build
 ```
 
 | URL | What |
